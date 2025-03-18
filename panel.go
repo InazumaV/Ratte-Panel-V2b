@@ -2,36 +2,31 @@ package main
 
 import (
 	"github.com/InazumaV/Ratte-Interface/panel"
+	"github.com/orcaman/concurrent-map/v2"
+	"resty.dev/v3"
+	"strconv"
 )
 
 type Panel struct {
+	client  *resty.Client
+	remotes cmap.ConcurrentMap[KeyInt, *Remote]
 }
 
-func (p *Panel) AddRemote(params *panel.AddRemoteParams) *panel.AddRemoteRsp {
-	//TODO implement me
-	panic("implement me")
+type KeyInt int
+
+func (k KeyInt) String() string {
+	return strconv.Itoa(int(k))
 }
 
-func (p *Panel) DelRemote(id int) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (p *Panel) GetNodeInfo(id int) *panel.GetNodeInfoRsp {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (p *Panel) GetUserList(id int) *panel.GetUserListRsp {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (p *Panel) ReportUserTraffic(pms *panel.ReportUserTrafficParams) error {
-	//TODO implement me
-	panic("implement me")
+type Remote struct {
+	nodeEtag string
+	userEtag string
+	*panel.AddRemoteParams
 }
 
 func NewPanel() *Panel {
-	return &Panel{}
+	return &Panel{
+		client:  resty.New(),
+		remotes: cmap.NewStringer[KeyInt, *Remote](),
+	}
 }
