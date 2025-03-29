@@ -6,6 +6,7 @@ import (
 	"github.com/InazumaV/Ratte-Interface/common/errors"
 	"github.com/InazumaV/Ratte-Interface/panel"
 	"github.com/InazumaV/Ratte-Interface/params"
+	"strconv"
 )
 
 type UserInfo struct {
@@ -27,15 +28,21 @@ func (p *Panel) GetUserList(id int) (rsp *panel.GetUserListRsp) {
 	}()
 	rm, _ := p.remotes.Get(KeyInt(id))
 	r, err := p.client.R().
-		SetHeader("If-None-Match", rm.userEtag).
-		Get("/api/v1/server/UniProxy/user")
+		SetHeader("If-None-Match", rm.userEtag).SetQueryParams(map[string]string{
+		"token":     rm.Key,
+		"node_type": rm.NodeType,
+		"node_id":   strconv.Itoa(rm.NodeId),
+	}).
+		Get(rm.Baseurl + "/api/v1/server/UniProxy/user")
 	if err != nil {
 		return &panel.GetUserListRsp{
 			Err: err,
 		}
 	}
 	if r.StatusCode() == 304 {
-		return &panel.GetUserListRsp{}
+		return &panel.GetUserListRsp{
+			Hash: rm.userEtag,
+		}
 	}
 	var userList getUserListRsp
 	err = json.Unmarshal(r.Bytes(), &userList)
@@ -45,7 +52,10 @@ func (p *Panel) GetUserList(id int) (rsp *panel.GetUserListRsp) {
 		}
 	}
 	rm.userEtag = r.Header().Get("ETag")
-	rsp = &panel.GetUserListRsp{}
+	rsp = &panel.GetUserListRsp{
+		Hash:  rm.userEtag,
+		Users: make([]panel.UserInfo, 0, len(userList.Users)),
+	}
 	for _, user := range userList.Users {
 		rsp.Users = append(rsp.Users, panel.UserInfo{
 			HashOrKey: fmt.Sprintf("%s-%d", user.Uuid, user.SpeedLimit),
@@ -82,7 +92,11 @@ func (p *Panel) ReportUserTraffic(pms *panel.ReportUserTrafficParams) (err error
 	}
 	r, err := p.client.R().
 		SetBody(data).
-		SetContentType("application/json").
+		SetContentType("application/json").SetQueryParams(map[string]string{
+		"token":     rm.Key,
+		"node_type": rm.NodeType,
+		"node_id":   strconv.Itoa(rm.NodeId),
+	}).
 		Post(rm.Baseurl + "/api/v1/server/UniProxy/user")
 	if err != nil {
 		return err

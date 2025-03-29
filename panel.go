@@ -26,7 +26,7 @@ type Remote struct {
 
 func NewPanel() *Panel {
 	return &Panel{
-		client:  resty.New(),
+		client:  resty.New().SetQueryParams(map[string]string{}),
 		remotes: cmap.NewStringer[KeyInt, *Remote](),
 	}
 }

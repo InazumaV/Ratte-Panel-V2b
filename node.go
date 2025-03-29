@@ -98,20 +98,35 @@ func (p *Panel) GetNodeInfo(id int) (rsp *panel.GetNodeInfoRsp) {
 			rsp.Err = errors.NewStringFromErr(rsp.Err)
 		}
 	}()
-	rm, _ := p.remotes.Get(KeyInt(id))
+	rm, ok := p.remotes.Get(KeyInt(id))
+	if !ok {
+		return &panel.GetNodeInfoRsp{
+			Err: fmt.Errorf("remote node not found"),
+		}
+	}
 	r, err := p.client.
 		R().
 		SetHeader("If-None-Match", rm.nodeEtag).
-		SetQueryParam("token", rm.Key).
+		SetQueryParams(map[string]string{
+			"token":     rm.Key,
+			"node_type": rm.NodeType,
+			"node_id":   strconv.Itoa(rm.NodeId),
+		}).
 		Get(rm.Baseurl + "/api/v1/server/UniProxy/config")
 	if err != nil {
 		return &panel.GetNodeInfoRsp{
 			Err: err,
 		}
 	}
+	if r.StatusCode() != 200 {
+		return &panel.GetNodeInfoRsp{
+			Err: fmt.Errorf("get node info error: %s", r.String()),
+		}
+	}
 	if r.StatusCode() == 304 {
 		return &panel.GetNodeInfoRsp{
-			Err: nil,
+			Err:  nil,
+			Hash: rm.nodeEtag,
 		}
 	}
 
@@ -236,9 +251,10 @@ func (p *Panel) GetNodeInfo(id int) (rsp *panel.GetNodeInfoRsp) {
 		case "block":
 			cn.Rules = matchs
 		}
-		rm.nodeEtag = r.Header().Get("ETag")
 	}
+	rm.nodeEtag = r.Header().Get("ETag")
 	return &panel.GetNodeInfoRsp{
 		NodeInfo: cn,
+		Hash:     rm.nodeEtag,
 	}
 }
