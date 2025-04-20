@@ -2,7 +2,7 @@ package v2b
 
 import "github.com/InazumaV/Ratte-Interface/panel"
 
-import td "Ratte-Panel-V2b/test_data"
+import td "github.com/Yuzuki616/Ratte-Panel-V2b/test_data"
 
 var p *Panel
 var id int

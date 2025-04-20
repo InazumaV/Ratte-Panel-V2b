@@ -1,13 +1,13 @@
 package v2b
 
 import (
-	"Ratte-Panel-V2b/crypt"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/InazumaV/Ratte-Interface/common/errors"
 	"github.com/InazumaV/Ratte-Interface/panel"
 	"github.com/InazumaV/Ratte-Interface/params"
+	"github.com/Yuzuki616/Ratte-Panel-V2b/crypt"
 	"strconv"
 	"strings"
 )
