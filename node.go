@@ -119,15 +119,15 @@ func (p *Panel) GetNodeInfo(id int) (rsp *panel.GetNodeInfoRsp) {
 			Err: err,
 		}
 	}
-	if r.StatusCode() != 200 {
-		return &panel.GetNodeInfoRsp{
-			Err: fmt.Errorf("get node info error: %s", r.String()),
-		}
-	}
 	if r.StatusCode() == 304 {
 		return &panel.GetNodeInfoRsp{
 			Err:  nil,
 			Hash: rm.nodeEtag,
+		}
+	}
+	if r.StatusCode() != 200 {
+		return &panel.GetNodeInfoRsp{
+			Err: fmt.Errorf("get node info error: %s", r.String()),
 		}
 	}
 

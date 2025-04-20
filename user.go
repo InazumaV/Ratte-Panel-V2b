@@ -97,7 +97,7 @@ func (p *Panel) ReportUserTraffic(pms *panel.ReportUserTrafficParams) (err error
 		"node_type": rm.NodeType,
 		"node_id":   strconv.Itoa(rm.NodeId),
 	}).
-		Post(rm.Baseurl + "/api/v1/server/UniProxy/user")
+		Post(rm.Baseurl + "/api/v1/server/UniProxy/push")
 	if err != nil {
 		return err
 	}

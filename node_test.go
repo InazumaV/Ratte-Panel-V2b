@@ -7,5 +7,5 @@ func TestPanel_GetNodeInfo(t *testing.T) {
 	if r.Err != nil {
 		t.Fatal(r.Err)
 	}
-	t.Log(r.NodeInfo.VMess)
+	t.Log(r.NodeInfo)
 }
