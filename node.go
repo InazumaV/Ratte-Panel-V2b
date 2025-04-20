@@ -98,6 +98,7 @@ func (p *Panel) GetNodeInfo(id int) (rsp *panel.GetNodeInfoRsp) {
 			rsp.Err = errors.NewStringFromErr(rsp.Err)
 		}
 	}()
+	rsp = &panel.GetNodeInfoRsp{}
 	rm, ok := p.remotes.Get(KeyInt(id))
 	if !ok {
 		return &panel.GetNodeInfoRsp{
