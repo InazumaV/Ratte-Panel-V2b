@@ -1,4 +1,4 @@
-package main
+package v2b
 
 import (
 	"Ratte-Panel-V2b/crypt"

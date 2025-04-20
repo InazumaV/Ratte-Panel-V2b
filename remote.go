@@ -1,4 +1,4 @@
-package main
+package v2b
 
 import "github.com/InazumaV/Ratte-Interface/panel"
 
