@@ -1,4 +1,4 @@
-module github.com/Yuzuki616/Ratte-Panel-V2b
+module github.com/InazumaV/Ratte-Panel-V2b
 
 go 1.24
 
