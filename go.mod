@@ -3,7 +3,7 @@ module github.com/InazumaV/Ratte-Panel-V2b
 go 1.24
 
 require (
-	github.com/InazumaV/Ratte-Interface v0.0.0-20250505045058-84e4bf9f70e4
+	github.com/InazumaV/Ratte-Interface v0.0.0-20250505045848-a0068c2a9be9
 	github.com/orcaman/concurrent-map/v2 v2.0.1
 	github.com/sirupsen/logrus v1.9.3
 	resty.dev/v3 v3.0.0-beta.2
