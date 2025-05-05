@@ -7,9 +7,15 @@ import (
 	"strconv"
 )
 
+var _ panel.Panel = (*Panel)(nil)
+
 type Panel struct {
 	client  *resty.Client
 	remotes cmap.ConcurrentMap[KeyInt, *Remote]
+}
+
+func (p *Panel) CustomMethod(method string, args any, reply *any) error {
+	return nil
 }
 
 type KeyInt int
