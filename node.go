@@ -1,13 +1,11 @@
 package v2b
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"github.com/InazumaV/Ratte-Interface/common/errors"
 	"github.com/InazumaV/Ratte-Interface/panel"
 	"github.com/InazumaV/Ratte-Interface/params"
-	"github.com/InazumaV/Ratte-Panel-V2b/crypt"
 	"strconv"
 	"strings"
 )
@@ -92,6 +90,39 @@ type Rules struct {
 	Protocol []string
 }
 
+func parseSecurityConfig(
+	tp int,
+	t *TlsSettings,
+	r *RealityConfig,
+	n *panel.NodeInfo,
+) (sec *params.SecurityConfig) {
+	switch tp {
+	case Tls:
+		n.Security = "tls"
+		n.SecurityConfig = &params.SecurityConfig{
+			TlsSettings: params.TlsSettings{
+				ServerName: t.ServerName,
+			},
+		}
+	case Reality:
+		n.Security = "reality"
+		sp, _ := strconv.Atoi(t.ServerPort)
+		n.SecurityConfig = &params.SecurityConfig{
+			RealityConfig: params.RealityConfig{
+				Xver:         r.Xver,
+				MinClientVer: r.MinClientVer,
+				MaxClientVer: r.MaxClientVer,
+				MaxTimeDiff:  r.MaxTimeDiff,
+				ServerName:   t.ServerName,
+				ServerPort:   sp,
+			},
+		}
+	case None:
+		n.Security = ""
+	}
+	return sec
+}
+
 func (p *Panel) GetNodeInfo(id int) (rsp *panel.GetNodeInfoRsp) {
 	defer func() {
 		if rsp.Err != nil {
@@ -132,9 +163,8 @@ func (p *Panel) GetNodeInfo(id int) (rsp *panel.GetNodeInfoRsp) {
 	}
 
 	var cm = &CommonNode{}
-	cn := panel.NodeInfo{
-		Type: rm.NodeType,
-	}
+	var cn panel.NodeInfo
+
 	switch rm.NodeType {
 	case "vmess", "vless":
 		rsp := &VAllssNode{}
@@ -152,7 +182,6 @@ func (p *Panel) GetNodeInfo(id int) (rsp *panel.GetNodeInfoRsp) {
 			rsp.TlsSettings = *rsp.TlsSettingsBack
 			rsp.TlsSettingsBack = nil
 		}
-
 		if len(rsp.NetworkSettings) > 0 {
 			err = json.Unmarshal(rsp.NetworkSettings, &rsp.RealityConfig)
 			if err != nil {
@@ -161,28 +190,35 @@ func (p *Panel) GetNodeInfo(id int) (rsp *panel.GetNodeInfoRsp) {
 				}
 			}
 		}
-		if rsp.Tls == Reality {
-			if rsp.TlsSettings.PrivateKey == "" {
-				key := crypt.GenX25519Private([]byte("vless" + rm.Key))
-				rsp.TlsSettings.PrivateKey = base64.RawURLEncoding.EncodeToString(key)
-			}
+
+		cn = panel.NodeInfo{
+			Type: rm.NodeType,
+			Port: rsp.ServerPort,
 		}
+
+		parseSecurityConfig(rsp.Tls, &rsp.TlsSettings, &rsp.RealityConfig, &cn)
 		cm = &rsp.CommonNode
-		cn.VMess = &params.VMessNode{
-			CommonNodeParams: params.CommonNodeParams{
-				Host: cm.Host,
-				Port: strconv.Itoa(cm.ServerPort),
-			},
-			TlsType: rsp.Tls,
-			TlsSettings: params.TlsSettings{
-				ServerName: rsp.TlsSettings.ServerName,
-				ServerPort: rsp.TlsSettings.ServerPort,
-				ShortId:    rsp.TlsSettings.ShortId,
-				PrivateKey: rsp.TlsSettings.PrivateKey,
-			},
-			Network:         rsp.Network,
-			NetworkSettings: rsp.NetworkSettings,
-			ServerName:      rsp.ServerName,
+		switch rsp.Network {
+		case "ws":
+			cn.VMess = &params.VMess{
+				Network: rsp.Network,
+			}
+			err := json.Unmarshal(rsp.NetworkSettings, &cn.VMess.Ws)
+			if err != nil {
+				return &panel.GetNodeInfoRsp{
+					Err: fmt.Errorf("decode ws params error: %s", err),
+				}
+			}
+		case "grpc":
+			cn.VMess = &params.VMess{
+				Network: rsp.Network,
+			}
+			err := json.Unmarshal(rsp.NetworkSettings, &cn.VMess.Grpc)
+			if err != nil {
+				return &panel.GetNodeInfoRsp{
+					Err: fmt.Errorf("decode grpc params error: %s", err),
+				}
+			}
 		}
 	case "shadowsocks":
 		rsp := &ShadowsocksNode{}
@@ -192,12 +228,12 @@ func (p *Panel) GetNodeInfo(id int) (rsp *panel.GetNodeInfoRsp) {
 				Err: fmt.Errorf("decode ss params error: %s", err),
 			}
 		}
+		cn = panel.NodeInfo{
+			Type: rm.NodeType,
+			Port: rsp.ServerPort,
+		}
 		cm = &rsp.CommonNode
-		cn.Shadowsocks = &params.ShadowsocksNode{
-			CommonNodeParams: params.CommonNodeParams{
-				Host: cm.Host,
-				Port: strconv.Itoa(cm.ServerPort),
-			},
+		cn.Shadowsocks = &params.Shadowsocks{
 			Cipher:    rsp.Cipher,
 			ServerKey: rsp.ServerKey,
 		}
@@ -209,11 +245,14 @@ func (p *Panel) GetNodeInfo(id int) (rsp *panel.GetNodeInfoRsp) {
 				Err: fmt.Errorf("decode trojan params error: %s", err),
 			}
 		}
-		cm = (*CommonNode)(rsp)
-		cn.Trojan = &params.TrojanNode{
-			Host: cm.Host,
-			Port: strconv.Itoa(cm.ServerPort),
+		cn = panel.NodeInfo{
+			Type: rm.NodeType,
+			Port: rsp.ServerPort,
 		}
+		cn.Trojan = &params.Trojan{
+			Host: cm.Host,
+		}
+		cm = (*CommonNode)(rsp)
 	case "hysteria":
 		rsp := &HysteriaNode{}
 		err = json.Unmarshal(r.Bytes(), rsp)
@@ -222,12 +261,12 @@ func (p *Panel) GetNodeInfo(id int) (rsp *panel.GetNodeInfoRsp) {
 				Err: fmt.Errorf("decode hysteria params error: %s", err),
 			}
 		}
+		cn = panel.NodeInfo{
+			Type: rm.NodeType,
+			Port: rsp.ServerPort,
+		}
 		cm = &rsp.CommonNode
-		cn.Hysteria = &params.HysteriaNode{
-			CommonNodeParams: params.CommonNodeParams{
-				Host: cm.Host,
-				Port: strconv.Itoa(cm.ServerPort),
-			},
+		cn.Hysteria = &params.Hysteria{
 			UpMbps:   rsp.UpMbps,
 			DownMbps: rsp.DownMbps,
 			Obfs:     rsp.Obfs,
