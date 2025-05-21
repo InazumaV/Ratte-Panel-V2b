@@ -14,6 +14,10 @@ type Panel struct {
 	remotes cmap.ConcurrentMap[KeyInt, *Remote]
 }
 
+func (p *Panel) Type() string {
+	return "Ratte-Panel-V2b"
+}
+
 func (p *Panel) CustomMethod(method string, args any, reply *any) error {
 	return nil
 }
